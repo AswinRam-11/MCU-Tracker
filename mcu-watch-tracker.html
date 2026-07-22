@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Watch List — MCU Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap');
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #FFFFFF;
+    color: #241B4D;
+    font-family: 'Nunito', sans-serif;
+  }
+  ::selection { background: #B983FF44; }
+  input::placeholder { color: rgba(36,27,77,0.35); }
+
+  .display-font { font-family: 'Baloo 2', sans-serif; }
+
+  @keyframes floaty {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .page {
+    min-height: 100vh;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .orb {
+    pointer-events: none;
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(64px);
+  }
+
+  .wrap {
+    position: relative;
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: 3.5rem 1rem 2.5rem;
+  }
+  @media (min-width: 640px) {
+    .wrap { padding: 3.5rem 2rem 2.5rem; }
+  }
+
+  /* ---------- header ---------- */
+  header { text-align: center; margin-bottom: 2rem; }
+  h1.title {
+    font-size: 2.75rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.4rem;
+    background: linear-gradient(90deg, #4D96FF, #B983FF, #FF6B9D, #FFD93D);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  @media (min-width: 640px) { h1.title { font-size: 3.75rem; } }
+  header p {
+    color: rgba(36,27,77,0.55);
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  /* ---------- progress card ---------- */
+  .progress-card {
+    border-radius: 1.5rem;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 2rem;
+    background: linear-gradient(135deg, #FAF9FF, #F3F0FF);
+    border: 2px solid #ECE7FF;
+    box-shadow: 0 10px 30px -18px rgba(80,60,180,0.35);
+  }
+  .progress-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .progress-top .count { font-size: 1.25rem; font-weight: 800; }
+  .progress-top .pct { font-size: 1.75rem; font-weight: 800; color: #FF9F1C; }
+  .progress-track {
+    height: 0.75rem;
+    border-radius: 9999px;
+    background: rgba(36,27,77,0.08);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.5s ease;
+    background: linear-gradient(90deg, #4D96FF, #3DDC97, #FFD93D, #FF9F4D, #FF6B9D, #B983FF);
+  }
+
+  /* ---------- infinity meter ---------- */
+  .meter-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    flex-wrap: wrap;
+  }
+  .gem-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+  .gem-outer {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.4s ease;
+  }
+  .gem-inner {
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.4s ease;
+  }
+  .gem-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: rgba(36,27,77,0.45);
+    text-transform: uppercase;
+  }
+
+  /* ---------- controls ---------- */
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+  @media (min-width: 640px) { .controls { flex-direction: row; } }
+
+  .search-box { position: relative; flex: 1; }
+  .search-box svg {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(36,27,77,0.4);
+    pointer-events: none;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border-radius: 1rem;
+    background: #F5F3FF;
+    border: 2px solid #ECE7FF;
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: 'Nunito', sans-serif;
+    color: #241B4D;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .search-box input:focus {
+    border-color: #B983FF;
+    box-shadow: 0 0 0 3px rgba(185,131,255,0.18);
+  }
+
+  .filter-group { display: flex; gap: 0.5rem; }
+
+  .btn {
+    padding: 0.75rem 1.1rem;
+    border-radius: 1rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    border: 2px solid #ECE7FF;
+    background: #F5F3FF;
+    color: rgba(36,27,77,0.6);
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  .btn:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 10px 20px -10px rgba(80,60,180,0.4);
+  }
+  .btn:active { transform: translateY(-1px) scale(0.98); }
+  .btn.filter-active {
+    background: linear-gradient(135deg, #B983FF, #FF6B9D);
+    border-color: transparent;
+    color: #FFFFFF;
+  }
+  .btn.reset-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+  .btn.reset-btn:hover {
+    color: #241B4D;
+    border-color: #FF9F1C;
+    box-shadow: 0 10px 20px -10px rgba(255,159,28,0.5);
+  }
+
+  .status-text { text-align: center; font-size: 0.85rem; margin-bottom: 1.5rem; }
+  .status-loading { color: rgba(36,27,77,0.4); }
+  .status-error { color: #EF476F; font-size: 0.75rem; }
+
+  /* ---------- phase sections ---------- */
+  .phase-section { margin-bottom: 2.5rem; }
+  .phase-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+    padding: 0 0.25rem;
+  }
+  .phase-head-left { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+  .phase-head h2 { font-size: 1.6rem; font-weight: 800; margin: 0; }
+  @media (min-width: 640px) { .phase-head h2 { font-size: 1.9rem; } }
+  .phase-tag { font-size: 0.8rem; color: rgba(36,27,77,0.45); font-style: italic; font-weight: 600; }
+  .phase-right { display: flex; align-items: center; gap: 0.75rem; }
+  .phase-count { font-size: 0.9rem; font-weight: 700; color: rgba(36,27,77,0.7); }
+
+  .btn-markall {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s ease, filter 0.2s ease;
+  }
+  .btn-markall:hover {
+    transform: translateY(-2px) scale(1.06);
+    filter: brightness(0.95);
+    box-shadow: 0 8px 18px -8px var(--accent-shadow, rgba(0,0,0,0.3));
+  }
+  .btn-markall:active { transform: translateY(0) scale(0.97); }
+
+  .phase-track {
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: rgba(36,27,77,0.08);
+    overflow: hidden;
+    margin: 0 0.25rem 1.25rem;
+  }
+  .phase-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.5s ease;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+  }
+  @media (min-width: 640px) { .card-grid { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1024px) { .card-grid { grid-template-columns: 1fr 1fr 1fr; } }
+
+  /* ---------- cards ---------- */
+  .mcu-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    text-align: left;
+    width: 100%;
+    border-radius: 1.5rem;
+    padding: 1.1rem 1.2rem;
+    cursor: pointer;
+    background: none;
+    font-family: 'Nunito', sans-serif;
+    transform: rotate(var(--rot)) scale(1);
+    transition: transform 0.28s cubic-bezier(.34,1.56,.64,1),
+                box-shadow 0.28s ease,
+                border-color 0.28s ease,
+                background 0.28s ease;
+  }
+  .mcu-card:hover, .mcu-card:focus-visible {
+    transform: rotate(0deg) scale(1.055) translateY(-6px);
+    border-color: var(--accent) !important;
+    background: color-mix(in srgb, var(--accent) 16%, white) !important;
+    box-shadow: 0 18px 34px -14px color-mix(in srgb, var(--accent) 65%, transparent),
+                0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .mcu-card:active { transform: rotate(0deg) scale(0.98) translateY(-2px); }
+  .mcu-card:hover .mcu-check { border-color: var(--accent) !important; }
+  .mcu-card:hover .mcu-badge {
+    background: color-mix(in srgb, var(--accent) 32%, transparent) !important;
+    color: #fff !important;
+  }
+
+  .mcu-check {
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-width: 2px;
+    border-style: solid;
+    transition: all 0.3s ease;
+  }
+
+  .card-body { flex: 1; min-width: 0; }
+  .card-title {
+    display: block;
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    font-family: 'Baloo 2', sans-serif;
+    transition: color 0.3s ease;
+  }
+  @media (min-width: 640px) { .card-title { font-size: 1rem; } }
+  .card-meta {
+    margin-top: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: rgba(36,27,77,0.5);
+    font-weight: 600;
+  }
+  .mcu-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 9999px;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: rgba(36,27,77,0.4);
+    padding: 4rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  footer.page-footer {
+    text-align: center;
+    color: rgba(36,27,77,0.3);
+    font-size: 0.75rem;
+    margin-top: 2.5rem;
+    padding-bottom: 1rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <!-- ambient colorful washes -->
+  <div class="orb" style="width:18rem;height:18rem;top:-70px;left:-70px;background:#4D96FF;opacity:0.3;animation:floaty 8s ease-in-out infinite;"></div>
+  <div class="orb" style="width:20rem;height:20rem;top:10%;right:-120px;background:#B983FF;opacity:0.25;animation:floaty 10s ease-in-out infinite;"></div>
+  <div class="orb" style="width:16rem;height:16rem;bottom:15%;left:0;background:#3DDC97;opacity:0.25;animation:floaty 9s ease-in-out infinite 1s;"></div>
+  <div class="orb" style="width:16rem;height:16rem;bottom:-40px;right:8%;background:#FF6B9D;opacity:0.25;animation:floaty 11s ease-in-out infinite 0.5s;"></div>
+  <div class="orb" style="width:14rem;height:14rem;top:42%;left:42%;background:#FFD93D;opacity:0.2;animation:floaty 7s ease-in-out infinite 1.5s;"></div>
+  <div class="orb" style="width:13rem;height:13rem;top:60%;right:30%;background:#FF8C42;opacity:0.2;animation:floaty 12s ease-in-out infinite 0.8s;"></div>
+
+  <div class="wrap">
+    <header>
+      <h1 class="title display-font">The Watch List</h1>
+      <p>Every movie &amp; series in the MCU. Tap to check them off.</p>
+    </header>
+
+    <div id="progress-section"></div>
+
+    <div class="controls">
+      <div class="search-box">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="search-input" type="text" placeholder="Search titles..." autocomplete="off" />
+      </div>
+      <div class="filter-group" id="filter-group">
+        <button class="btn filter-active" data-filter="all">All</button>
+        <button class="btn" data-filter="movie">Movies</button>
+        <button class="btn" data-filter="series">Series</button>
+      </div>
+      <button class="btn reset-btn" id="reset-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Reset
+      </button>
+    </div>
+
+    <div id="status-section"></div>
+
+    <div id="list-section"></div>
+
+    <footer class="page-footer" id="footer-count"></footer>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ------------------------------------------------------------ */
+  /*  DATA                                                          */
+  /* ------------------------------------------------------------ */
+
+  var PHASES = [
+    { id: 1, name: "Phase One", tag: "The First Avengers", color: "#4D96FF", glow: "#8FC1FF" },
+    { id: 2, name: "Phase Two", tag: "Age of Ultron & Beyond", color: "#3DDC97", glow: "#8FF0C6" },
+    { id: 3, name: "Phase Three", tag: "The Infinity Saga", color: "#E6B800", glow: "#FFE985" },
+    { id: 4, name: "Phase Four", tag: "A New Multiverse", color: "#FF9F4D", glow: "#FFC08F" },
+    { id: 5, name: "Phase Five", tag: "Kang & Beyond", color: "#FF6B9D", glow: "#FFA3C4" },
+    { id: 6, name: "Phase Six", tag: "Doomsday Rising", color: "#B983FF", glow: "#D9BFFF" }
+  ];
+
+  var RAW = [
+    ["Iron Man", 2008, "movie", 1],
+    ["The Incredible Hulk", 2008, "movie", 1],
+    ["Iron Man 2", 2010, "movie", 1],
+    ["Thor", 2011, "movie", 1],
+    ["Captain America: The First Avenger", 2011, "movie", 1],
+    ["The Avengers", 2012, "movie", 1],
+    ["Iron Man 3", 2013, "movie", 2],
+    ["Thor: The Dark World", 2013, "movie", 2],
+    ["Captain America: The Winter Soldier", 2014, "movie", 2],
+    ["Guardians of the Galaxy", 2014, "movie", 2],
+    ["Avengers: Age of Ultron", 2015, "movie", 2],
+    ["Ant-Man", 2015, "movie", 2],
+    ["Captain America: Civil War", 2016, "movie", 3],
+    ["Doctor Strange", 2016, "movie", 3],
+    ["Guardians of the Galaxy Vol. 2", 2017, "movie", 3],
+    ["Spider-Man: Homecoming", 2017, "movie", 3],
+    ["Thor: Ragnarok", 2017, "movie", 3],
+    ["Black Panther", 2018, "movie", 3],
+    ["Avengers: Infinity War", 2018, "movie", 3],
+    ["Ant-Man and the Wasp", 2018, "movie", 3],
+    ["Captain Marvel", 2019, "movie", 3],
+    ["Avengers: Endgame", 2019, "movie", 3],
+    ["Spider-Man: Far From Home", 2019, "movie", 3],
+    ["WandaVision", 2021, "series", 4],
+    ["The Falcon and the Winter Soldier", 2021, "series", 4],
+    ["Loki (Season 1)", 2021, "series", 4],
+    ["Black Widow", 2021, "movie", 4],
+    ["What If...? (Season 1)", 2021, "series", 4],
+    ["Shang-Chi and the Legend of the Ten Rings", 2021, "movie", 4],
+    ["Eternals", 2021, "movie", 4],
+    ["Hawkeye", 2021, "series", 4],
+    ["Spider-Man: No Way Home", 2021, "movie", 4],
+    ["Moon Knight", 2022, "series", 4],
+    ["Doctor Strange in the Multiverse of Madness", 2022, "movie", 4],
+    ["Ms. Marvel", 2022, "series", 4],
+    ["Thor: Love and Thunder", 2022, "movie", 4],
+    ["She-Hulk: Attorney at Law", 2022, "series", 4],
+    ["Werewolf by Night", 2022, "series", 4],
+    ["Black Panther: Wakanda Forever", 2022, "movie", 4],
+    ["Guardians of the Galaxy Holiday Special", 2022, "series", 4],
+    ["Ant-Man and the Wasp: Quantumania", 2023, "movie", 5],
+    ["Secret Invasion", 2023, "series", 5],
+    ["Guardians of the Galaxy Vol. 3", 2023, "movie", 5],
+    ["What If...? (Season 2)", 2023, "series", 5],
+    ["Loki (Season 2)", 2023, "series", 5],
+    ["Echo", 2024, "series", 5],
+    ["Deadpool & Wolverine", 2024, "movie", 5],
+    ["Agatha All Along", 2024, "series", 5],
+    ["What If...? (Season 3)", 2024, "series", 5],
+    ["Captain America: Brave New World", 2025, "movie", 5],
+    ["Daredevil: Born Again", 2025, "series", 5],
+    ["Thunderbolts*", 2025, "movie", 5],
+    ["Ironheart", 2025, "series", 5],
+    ["Eyes of Wakanda", 2025, "series", 5],
+    ["The Fantastic Four: First Steps", 2025, "movie", 6],
+    ["Wonder Man", 2026, "series", 6],
+    ["Daredevil: Born Again (Season 2)", 2027, "series", 6],
+    ["Spider-Man: Brand New Day", 2026, "movie", 6],
+    ["Avengers: Doomsday", 2026, "movie", 6],
+    ["Avengers: Secret Wars", 2027, "movie", 6]
+  ];
+
+  var PALETTE = [
+    "#FF6B6B", "#FFA94D", "#FFD93D", "#B4E600", "#3DDC97",
+    "#4ECDC4", "#4D96FF", "#7B61FF", "#B983FF", "#FF6B9D",
+    "#FF4D94", "#FF8C42", "#06D6A0", "#118AB2", "#EF476F"
+  ];
+
+  var ITEMS = RAW.map(function (row, i) {
+    var title = row[0], year = row[1], type = row[2], phase = row[3];
+    return {
+      id: "mcu-" + i + "-" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      title: title,
+      year: year,
+      type: type,
+      phase: phase,
+      color: PALETTE[i % PALETTE.length],
+      rot: ((i % 5) - 2) * 1.1
+    };
+  });
+
+  var STORAGE_KEY = "mcu-watched-v1";
+
+  /* ------------------------------------------------------------ */
+  /*  ICONS                                                         */
+  /* ------------------------------------------------------------ */
+
+  function iconCheck() {
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  }
+  function iconFilm() {
+    return '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>';
+  }
+  function iconTv() {
+    return '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>';
+  }
+  function iconSparkles() {
+    return '<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff" stroke="none"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2z"/></svg>';
+  }
+
+  /* ------------------------------------------------------------ */
+  /*  STATE                                                         */
+  /* ------------------------------------------------------------ */
+
+  var state = {
+    watched: {},
+    loaded: false,
+    saveError: false,
+    query: "",
+    typeFilter: "all"
+  };
+
+  function hexToAlpha(hex, alphaHex) {
+    return hex + alphaHex;
+  }
+
+  /* ------------------------------------------------------------ */
+  /*  PERSISTENCE                                                   */
+  /* ------------------------------------------------------------ */
+
+  function loadWatched() {
+    if (!window.storage || !window.storage.get) {
+      state.loaded = true;
+      renderAll();
+      return;
+    }
+    window.storage.get(STORAGE_KEY, false)
+      .then(function (res) {
+        if (res && res.value) {
+          try { state.watched = JSON.parse(res.value); } catch (e) {}
+        }
+      })
+      .catch(function () { /* nothing saved yet */ })
+      .then(function () {
+        state.loaded = true;
+        renderAll();
+      });
+  }
+
+  function persist() {
+    if (!window.storage || !window.storage.set) return;
+    window.storage.set(STORAGE_KEY, JSON.stringify(state.watched), false)
+      .then(function (result) {
+        state.saveError = !result;
+        renderStatus();
+      })
+      .catch(function () {
+        state.saveError = true;
+        renderStatus();
+      });
+  }
+
+  function toggleWatched(id) {
+    state.watched[id] = !state.watched[id];
+    persist();
+    renderProgress();
+    renderList();
+  }
+
+  function setMany(ids, value) {
+    ids.forEach(function (id) { state.watched[id] = value; });
+    persist();
+    renderProgress();
+    renderList();
+  }
+
+  /* ------------------------------------------------------------ */
+  /*  DERIVED DATA                                                  */
+  /* ------------------------------------------------------------ */
+
+  function getFilteredItems() {
+    var q = state.query.toLowerCase();
+    return ITEMS.filter(function (item) {
+      var matchesQuery = item.title.toLowerCase().indexOf(q) !== -1;
+      var matchesType = state.typeFilter === "all" || item.type === state.typeFilter;
+      return matchesQuery && matchesType;
+    });
+  }
+
+  function getGrouped(items) {
+    var map = {};
+    PHASES.forEach(function (p) { map[p.id] = []; });
+    items.forEach(function (item) { map[item.phase].push(item); });
+    return map;
+  }
+
+  function getPhaseStats() {
+    var stats = {};
+    PHASES.forEach(function (p) {
+      var items = ITEMS.filter(function (i) { return i.phase === p.id; });
+      var done = items.filter(function (i) { return !!state.watched[i.id]; }).length;
+      stats[p.id] = { done: done, total: items.length };
+    });
+    return stats;
+  }
+
+  /* ------------------------------------------------------------ */
+  /*  RENDER: progress card + infinity meter                        */
+  /* ------------------------------------------------------------ */
+
+  function renderProgress() {
+    var totalDone = Object.keys(state.watched).filter(function (k) { return state.watched[k]; }).length;
+    var totalCount = ITEMS.length;
+    var overallPct = totalCount ? Math.round((totalDone / totalCount) * 100) : 0;
+    var phaseStats = getPhaseStats();
+
+    var gems = PHASES.map(function (p) {
+      var stat = phaseStats[p.id];
+      var full = stat.total > 0 && stat.done === stat.total;
+      var pct = stat.total ? stat.done / stat.total : 0;
+      var outerShadow = full ? ("0 0 16px 3px " + p.glow) : "none";
+      var innerBg = full
+        ? ("radial-gradient(circle at 35% 30%, " + p.glow + ", " + p.color + ")")
+        : "#FFFFFF";
+      return (
+        '<div class="gem-wrap" title="' + p.name + ": " + stat.done + "/" + stat.total + '">' +
+          '<div class="gem-outer" style="background:conic-gradient(' + p.color + " " + (pct * 360) + "deg, rgba(36,27,77,0.09) " + (pct * 360) + 'deg);box-shadow:' + outerShadow + ';">' +
+            '<div class="gem-inner" style="background:' + innerBg + ';">' +
+              (full ? iconSparkles() : "") +
+            "</div>" +
+          "</div>" +
+          '<span class="gem-label">P' + p.id + "</span>" +
+        "</div>"
+      );
+    }).join("");
+
+    var html =
+      '<div class="progress-card">' +
+        '<div class="progress-top">' +
+          '<span class="count display-font">' + totalDone + " / " + totalCount + " watched</span>" +
+          '<span class="pct display-font">' + overallPct + "%</span>" +
+        "</div>" +
+        '<div class="progress-track"><div class="progress-fill" style="width:' + overallPct + '%;"></div></div>' +
+        '<div class="meter-row">' + gems + "</div>" +
+      "</div>";
+
+    document.getElementById("progress-section").innerHTML = html;
+  }
+
+  /* ------------------------------------------------------------ */
+  /*  RENDER: status (loading / save error)                         */
+  /* ------------------------------------------------------------ */
+
+  function renderStatus() {
+    var html = "";
+    if (!state.loaded) {
+      html += '<p class="status-text status-loading">Loading your progress...</p>';
+    }
+    if (state.saveError) {
+      html += '<p class="status-text status-error">Couldn\'t save your progress right now — your changes may not persist.</p>';
+    }
+    document.getElementById("status-section").innerHTML = html;
+  }
+
+  /* ------------------------------------------------------------ */
+  /*  RENDER: card + phase sections + list                          */
+  /* ------------------------------------------------------------ */
+
+  function cardHtml(item) {
+    var done = !!state.watched[item.id];
+    var color = item.color;
+    var bg = done ? hexToAlpha(color, "1c") : hexToAlpha(color, "0d");
+    var borderColor = done ? hexToAlpha(color, "88") : hexToAlpha(color, "33");
+    var shadow = done
+      ? ("0 8px 22px -12px " + hexToAlpha(color, "99"))
+      : ("0 6px 16px -12px " + hexToAlpha(color, "55"));
+    var checkBorder = done ? color : hexToAlpha(color, "55");
+    var checkBg = done ? color : "transparent";
+    var checkScale = done ? "scale(1.08)" : "scale(1)";
+    var titleColor = done ? "rgba(36,27,77,0.4)" : "#241B4D";
+    var titleDecoration = done ? ("line-through") : "none";
+    var typeLabel = item.type === "movie" ? "Movie" : "Series";
+    var typeIcon = item.type === "movie" ? iconFilm() : iconTv();
+
+    return (
+      '<button type="button" class="mcu-card" data-id="' + item.id + '" ' +
+        'style="--accent:' + color + ";--rot:" + item.rot + "deg;" +
+        "background:" + bg + ";border:2px solid " + borderColor + ";box-shadow:" + shadow + ";outline-color:" + color + ';">' +
+        '<span class="mcu-check" style="border-color:' + checkBorder + ";background:" + checkBg + ";transform:" + checkScale + ';">' +
+          (done ? iconCheck() : "") +
+        "</span>" +
+        '<span class="card-body">' +
+          '<span class="card-title display-font" style="color:' + titleColor + ";text-decoration:" + titleDecoration + ";text-decoration-color:" + color + ';text-decoration-thickness:2px;">' +
+            escapeHtml(item.title) +
+          "</span>" +
+          '<span class="card-meta">' +
+            '<span class="mcu-badge" style="background:' + hexToAlpha(color, "22") + ";color:" + color + ';">' +
+              typeIcon + " " + typeLabel +
+            "</span>" +
+            "<span>" + item.year + "</span>" +
+          "</span>" +
+        "</span>" +
+      "</button>"
+    );
+  }
+
+  function phaseSectionHtml(phase, items) {
+    if (items.length === 0) return "";
+    var done = items.filter(function (i) { return !!state.watched[i.id]; }).length;
+    var total = items.length;
+    var pct = total ? Math.round((done / total) * 100) : 0;
+    var allDone = done === total;
+
+    var cards = items.map(cardHtml).join("");
+
+    return (
+      '<section class="phase-section">' +
+        '<div class="phase-head">' +
+          '<div class="phase-head-left">' +
+            '<h2 class="display-font" style="color:' + phase.color + ';">' + phase.name + "</h2>" +
+            '<span class="phase-tag">' + phase.tag + "</span>" +
+          "</div>" +
+          '<div class="phase-right">' +
+            '<span class="phase-count">' + done + "/" + total + "</span>" +
+            '<button type="button" class="btn-markall" data-phase="' + phase.id + '" data-mark="' + (allDone ? "0" : "1") + '" ' +
+              'style="background:' + hexToAlpha(phase.color, "22") + ";color:" + phase.color + ";--accent-shadow:" + hexToAlpha(phase.color, "55") + ';">' +
+              (allDone ? "Unmark all" : "Mark all watched") +
+            "</button>" +
+          "</div>" +
+        "</div>" +
+        '<div class="phase-track"><div class="phase-fill" style="width:' + pct + "%;background:linear-gradient(90deg," + phase.color + "," + phase.glow + ');"></div></div>' +
+        '<div class="card-grid">' + cards + "</div>" +
+      "</section>"
+    );
+  }
+
+  function renderList() {
+    var filtered = getFilteredItems();
+    var grouped = getGrouped(filtered);
+
+    var html = PHASES.map(function (phase) {
+      return phaseSectionHtml(phase, grouped[phase.id]);
+    }).join("");
+
+    if (filtered.length === 0) {
+      html = '<p class="empty-state">No titles match &quot;' + escapeHtml(state.query) + '&quot;.</p>';
+    }
+
+    document.getElementById("list-section").innerHTML = html;
+
+    // event delegation is attached once on the container (see init()), so no re-binding needed here.
+  }
+
+  function renderFooter() {
+    document.getElementById("footer-count").textContent = ITEMS.length + " titles tracked · Data saved automatically";
+  }
+
+  function renderAll() {
+    renderProgress();
+    renderStatus();
+    renderList();
+    renderFooter();
+  }
+
+  /* ------------------------------------------------------------ */
+  /*  UTIL                                                          */
+  /* ------------------------------------------------------------ */
+
+  function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  /* ------------------------------------------------------------ */
+  /*  INIT + EVENTS                                                 */
+  /* ------------------------------------------------------------ */
+
+  function init() {
+    // search input
+    var searchInput = document.getElementById("search-input");
+    searchInput.addEventListener("input", function (e) {
+      state.query = e.target.value;
+      renderList();
+    });
+
+    // filter buttons
+    var filterGroup = document.getElementById("filter-group");
+    filterGroup.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-filter]");
+      if (!btn) return;
+      state.typeFilter = btn.getAttribute("data-filter");
+      Array.prototype.forEach.call(filterGroup.querySelectorAll(".btn"), function (b) {
+        b.classList.toggle("filter-active", b === btn);
+      });
+      renderList();
+    });
+
+    // reset button
+    document.getElementById("reset-btn").addEventListener("click", function () {
+      setMany(ITEMS.map(function (i) { return i.id; }), false);
+    });
+
+    // delegated clicks: card toggle + mark-all-per-phase
+    document.getElementById("list-section").addEventListener("click", function (e) {
+      var markBtn = e.target.closest("[data-mark]");
+      if (markBtn) {
+        var phaseId = parseInt(markBtn.getAttribute("data-phase"), 10);
+        var value = markBtn.getAttribute("data-mark") === "1";
+        var ids = ITEMS.filter(function (i) { return i.phase === phaseId; }).map(function (i) { return i.id; });
+        setMany(ids, value);
+        return;
+      }
+      var card = e.target.closest(".mcu-card");
+      if (card) {
+        toggleWatched(card.getAttribute("data-id"));
+      }
+    });
+
+    renderFooter();
+    loadWatched();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+
+</body>
+</html>
