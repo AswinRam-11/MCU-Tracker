@@ -570,6 +570,7 @@
   });
 
   var STORAGE_KEY = "mcu-watched-v1";
+  var THEME_KEY = "mcu-theme-v1";
 
   /* ------------------------------------------------------------ */
   /*  ICONS                                                         */
@@ -612,29 +613,21 @@
   }
 
   /* ------------------------------------------------------------ */
-  /*  PERSISTENCE                                                   */
+  /*  PERSISTENCE (LOCAL STORAGE)                                   */
   /* ------------------------------------------------------------ */
 
   function loadWatched() {
-    if (!window.storage || !window.storage.get) {
-      state.loaded = true;
-      renderAll();
-      return;
+    try {
+      var saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        state.watched = JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Failed to load watched list from localStorage:", e);
     }
-    window.storage.get(STORAGE_KEY, false)
-      .then(function (res) {
-        if (res && res.value) {
-          try { state.watched = JSON.parse(res.value); } catch (e) {}
-        }
-      })
-      .catch(function () { /* nothing saved yet */ })
-      .then(function () {
-        state.loaded = true;
-        renderAll();
-      });
+    state.loaded = true;
+    renderAll();
   }
-
-  var THEME_KEY = "mcu-theme-v1";
 
   function applyTheme() {
     document.documentElement.setAttribute("data-theme", state.theme);
@@ -642,48 +635,41 @@
     if (iconEl) {
       iconEl.innerHTML = state.theme === "dark" ? iconSun() : iconMoon();
     }
-    // gem "idle" fills and card "not watched" states reference CSS vars already,
-    // but re-render so any inline colors that read state.theme stay in sync.
     renderProgress();
     renderList();
   }
 
   function loadTheme() {
-    if (!window.storage || !window.storage.get) {
-      applyTheme();
-      return;
+    try {
+      var savedTheme = localStorage.getItem(THEME_KEY);
+      if (savedTheme === "dark" || savedTheme === "light") {
+        state.theme = savedTheme;
+      }
+    } catch (e) {
+      console.error("Failed to load theme from localStorage:", e);
     }
-    window.storage.get(THEME_KEY, false)
-      .then(function (res) {
-        if (res && (res.value === "dark" || res.value === "light")) {
-          state.theme = res.value;
-        }
-      })
-      .catch(function () { /* no saved theme yet */ })
-      .then(function () {
-        applyTheme();
-      });
+    applyTheme();
   }
 
   function toggleTheme() {
     state.theme = state.theme === "dark" ? "light" : "dark";
     applyTheme();
-    if (window.storage && window.storage.set) {
-      window.storage.set(THEME_KEY, state.theme, false).catch(function () {});
+    try {
+      localStorage.setItem(THEME_KEY, state.theme);
+    } catch (e) {
+      console.error("Failed to save theme:", e);
     }
   }
 
   function persist() {
-    if (!window.storage || !window.storage.set) return;
-    window.storage.set(STORAGE_KEY, JSON.stringify(state.watched), false)
-      .then(function (result) {
-        state.saveError = !result;
-        renderStatus();
-      })
-      .catch(function () {
-        state.saveError = true;
-        renderStatus();
-      });
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.watched));
+      state.saveError = false;
+    } catch (e) {
+      console.error("Failed to save progress:", e);
+      state.saveError = true;
+    }
+    renderStatus();
   }
 
   function toggleWatched(id) {
@@ -873,8 +859,6 @@
     }
 
     document.getElementById("list-section").innerHTML = html;
-
-    // event delegation is attached once on the container (see init()), so no re-binding needed here.
   }
 
   function renderFooter() {
@@ -903,14 +887,12 @@
   /* ------------------------------------------------------------ */
 
   function init() {
-    // search input
     var searchInput = document.getElementById("search-input");
     searchInput.addEventListener("input", function (e) {
       state.query = e.target.value;
       renderList();
     });
 
-    // filter buttons
     var filterGroup = document.getElementById("filter-group");
     filterGroup.addEventListener("click", function (e) {
       var btn = e.target.closest("[data-filter]");
@@ -922,12 +904,10 @@
       renderList();
     });
 
-    // reset button
     document.getElementById("reset-btn").addEventListener("click", function () {
       setMany(ITEMS.map(function (i) { return i.id; }), false);
     });
 
-    // delegated clicks: card toggle + mark-all-per-phase
     document.getElementById("list-section").addEventListener("click", function (e) {
       var markBtn = e.target.closest("[data-mark]");
       if (markBtn) {
@@ -943,7 +923,6 @@
       }
     });
 
-    // theme toggle
     document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
 
     renderFooter();
